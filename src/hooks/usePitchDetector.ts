@@ -1,0 +1,205 @@
+import { YIN } from 'pitchfinder';
+import { useCallback, useEffect, useRef, useState } from 'react';
+
+import type { Instrument } from '../utils/instruments';
+import { getInstrumentFrequencyRange } from '../utils/instruments';
+import { frequencyToNote, getRms, type NoteInfo } from '../utils/notes';
+
+const RMS_THRESHOLD = 0.008;
+
+export interface PitchState {
+  frequency: number | null;
+  note: NoteInfo | null;
+  isListening: boolean;
+  isActive: boolean;
+  error: string | null;
+  devices: MediaDeviceInfo[];
+  selectedDeviceId: string;
+}
+
+export function usePitchDetector(instrument: Instrument) {
+  const [state, setState] = useState<PitchState>({
+    frequency: null,
+    note: null,
+    isListening: false,
+    isActive: false,
+    error: null,
+    devices: [],
+    selectedDeviceId: '',
+  });
+
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const animationRef = useRef<number | null>(null);
+  const detectPitchRef = useRef<ReturnType<typeof YIN> | null>(null);
+  const bufferRef = useRef<Float32Array<ArrayBuffer> | null>(null);
+  const frequencyRangeRef = useRef(getInstrumentFrequencyRange(instrument));
+
+  useEffect(() => {
+    frequencyRangeRef.current = getInstrumentFrequencyRange(instrument);
+  }, [instrument]);
+
+  const stopListening = useCallback(() => {
+    if (animationRef.current !== null) {
+      cancelAnimationFrame(animationRef.current);
+      animationRef.current = null;
+    }
+
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+
+    void audioContextRef.current?.close();
+    audioContextRef.current = null;
+    analyserRef.current = null;
+    detectPitchRef.current = null;
+    bufferRef.current = null;
+
+    setState((prev) => ({
+      ...prev,
+      isListening: false,
+      isActive: false,
+      frequency: null,
+      note: null,
+    }));
+  }, []);
+
+  const analyze = useCallback(() => {
+    const analyser = analyserRef.current;
+    const detectPitch = detectPitchRef.current;
+    const buffer = bufferRef.current;
+    const { min, max } = frequencyRangeRef.current;
+
+    if (!analyser || !detectPitch || !buffer) return;
+
+    analyser.getFloatTimeDomainData(buffer);
+    const rms = getRms(buffer);
+
+    if (rms < RMS_THRESHOLD) {
+      setState((prev) => ({
+        ...prev,
+        isActive: false,
+        frequency: null,
+        note: null,
+      }));
+    } else {
+      const rawFrequency = detectPitch(buffer);
+
+      if (rawFrequency && rawFrequency >= min && rawFrequency <= max) {
+        setState((prev) => ({
+          ...prev,
+          isActive: true,
+          frequency: rawFrequency,
+          note: frequencyToNote(rawFrequency),
+        }));
+      } else {
+        setState((prev) => ({
+          ...prev,
+          isActive: false,
+          frequency: null,
+          note: null,
+        }));
+      }
+    }
+
+    animationRef.current = requestAnimationFrame(analyze);
+  }, []);
+
+  const startListening = useCallback(
+    async (deviceId?: string) => {
+      stopListening();
+
+      try {
+        const constraints: MediaStreamConstraints = {
+          audio: {
+            deviceId: deviceId ? { exact: deviceId } : undefined,
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+          },
+        };
+
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        const audioContext = new AudioContext();
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 4096;
+        analyser.smoothingTimeConstant = 0;
+
+        const source = audioContext.createMediaStreamSource(stream);
+        source.connect(analyser);
+
+        const arrayBuffer = new ArrayBuffer(analyser.fftSize * Float32Array.BYTES_PER_ELEMENT);
+        const buffer = new Float32Array(arrayBuffer);
+        const detectPitch = YIN({ sampleRate: audioContext.sampleRate });
+
+        streamRef.current = stream;
+        audioContextRef.current = audioContext;
+        analyserRef.current = analyser;
+        detectPitchRef.current = detectPitch;
+        bufferRef.current = buffer;
+
+        setState((prev) => ({
+          ...prev,
+          isListening: true,
+          error: null,
+          selectedDeviceId: deviceId ?? prev.selectedDeviceId,
+        }));
+
+        animationRef.current = requestAnimationFrame(analyze);
+      } catch (err) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : 'No se pudo acceder al micrófono o entrada de línea';
+
+        setState((prev) => ({
+          ...prev,
+          error: message,
+          isListening: false,
+        }));
+      }
+    },
+    [analyze, stopListening],
+  );
+
+  const refreshDevices = useCallback(async () => {
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+        stream.getTracks().forEach((track) => track.stop());
+      });
+    } catch {
+      // Permiso aún no concedido; igual intentamos listar dispositivos.
+    }
+
+    const allDevices = await navigator.mediaDevices.enumerateDevices();
+    const inputDevices = allDevices.filter((device) => device.kind === 'audioinput');
+
+    setState((prev) => ({
+      ...prev,
+      devices: inputDevices,
+      selectedDeviceId: prev.selectedDeviceId || inputDevices[0]?.deviceId || '',
+    }));
+  }, []);
+
+  const selectDevice = useCallback((deviceId: string) => {
+    setState((prev) => ({ ...prev, selectedDeviceId: deviceId }));
+  }, []);
+
+  useEffect(() => {
+    void refreshDevices();
+    navigator.mediaDevices.addEventListener('devicechange', refreshDevices);
+
+    return () => {
+      navigator.mediaDevices.removeEventListener('devicechange', refreshDevices);
+      stopListening();
+    };
+  }, [refreshDevices, stopListening]);
+
+  return {
+    ...state,
+    startListening,
+    stopListening,
+    refreshDevices,
+    selectDevice,
+  };
+}
