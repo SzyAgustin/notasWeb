@@ -48,6 +48,7 @@ export function speakText(text: string): void {
   utterance.lang = 'en-US';
   utterance.rate = 0.95;
   utterance.pitch = 1;
+  utterance.volume = 0.8;
   window.speechSynthesis.speak(utterance);
 }
 

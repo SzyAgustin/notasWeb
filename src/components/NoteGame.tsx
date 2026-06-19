@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 
 import { useNoteGame } from '../hooks/useNoteGame';
 import { formatElapsedTime } from '../utils/gameTime';
@@ -8,6 +8,7 @@ import {
   formatScaleDegreeLabel,
   formatScaleKeyLabel,
   SCALE_ROOTS,
+  type ScalePromptMode,
 } from '../utils/scales';
 
 const GAME_MODES: { id: GameMode; label: string; description: string }[] = [
@@ -28,20 +29,71 @@ const GAME_MODES: { id: GameMode; label: string; description: string }[] = [
   },
 ];
 
+function ScalePromptToggle({
+  mode,
+  onChange,
+}: {
+  mode: ScalePromptMode;
+  onChange: (mode: ScalePromptMode) => void;
+}) {
+  return (
+    <div className="game__prompt-toggle" role="group" aria-label="Grado o nota">
+      <button
+        type="button"
+        className={`game__prompt-toggle-btn ${mode === 'degree' ? 'game__prompt-toggle-btn--active' : ''}`}
+        onClick={() => onChange('degree')}
+        aria-pressed={mode === 'degree'}
+        title="Muestra 1°–7° de la escala"
+      >
+        °
+      </button>
+      <button
+        type="button"
+        className={`game__prompt-toggle-btn ${mode === 'note' ? 'game__prompt-toggle-btn--active' : ''}`}
+        onClick={() => onChange('note')}
+        aria-pressed={mode === 'note'}
+        title="Muestra la nota a tocar"
+      >
+        ♪
+      </button>
+    </div>
+  );
+}
+
+function ScaleKeyRow({
+  keyLabel,
+  scalePromptMode,
+  onScalePromptModeChange,
+}: {
+  keyLabel: string;
+  scalePromptMode: ScalePromptMode;
+  onScalePromptModeChange: (mode: ScalePromptMode) => void;
+}) {
+  return (
+    <div className="game__scale-key-row">
+      <p className="game__scale-key">{keyLabel}</p>
+      <ScalePromptToggle mode={scalePromptMode} onChange={onScalePromptModeChange} />
+    </div>
+  );
+}
+
 function NoteDisplay({
   note,
   label,
   variant,
   hideOctave = false,
+  scaleKeyRow,
 }: {
   note: { note: string; octave: number } | null;
   label: string;
   variant: 'target' | 'detected';
   hideOctave?: boolean;
+  scaleKeyRow?: ReactNode;
 }) {
   return (
     <div className={`game__note-panel game__note-panel--${variant}`}>
       <span className="game__note-label">{label}</span>
+      {scaleKeyRow}
       <div className="game__note-wrap">
         <span className="game__note">{note?.note ?? '—'}</span>
         {note && !hideOctave && <span className="game__octave">{note.octave}</span>}
@@ -55,15 +107,15 @@ function NoteDisplay({
 
 function DegreeDisplay({
   degree,
-  keyLabel,
+  scaleKeyRow,
 }: {
   degree: number;
-  keyLabel: string;
+  scaleKeyRow: ReactNode;
 }) {
   return (
     <div className="game__note-panel game__note-panel--target">
       <span className="game__note-label">Tocá este grado</span>
-      <p className="game__scale-key">{keyLabel}</p>
+      {scaleKeyRow}
       <div className="game__degree-wrap">
         <span className="game__degree">{degree}</span>
         <span className="game__degree-symbol">°</span>
@@ -89,6 +141,7 @@ export function NoteGame() {
     selectedKey,
     targetDegree,
     expectedScaleNote,
+    scalePromptMode,
     note: detectedNote,
     score,
     noteGoal,
@@ -106,6 +159,7 @@ export function NoteGame() {
     changeGameMode,
     changeScaleRoot,
     changeScaleQuality,
+    changeScalePromptMode,
     startGame,
     resumeGame,
     pauseGame,
@@ -113,6 +167,8 @@ export function NoteGame() {
     selectDevice,
     speechMuted,
     toggleSpeechMuted,
+    noteToneEnabled,
+    toggleNoteToneEnabled,
   } = useNoteGame();
 
   const isCorrect =
@@ -151,6 +207,15 @@ export function NoteGame() {
 
   const displayedTime = formatElapsedTime(finalTimeMs ?? elapsedMs);
 
+  const scaleKeyRow =
+    gameMode === 'scale' ? (
+      <ScaleKeyRow
+        keyLabel={selectedKeyLabel}
+        scalePromptMode={scalePromptMode}
+        onScalePromptModeChange={changeScalePromptMode}
+      />
+    ) : null;
+
   const statusMessage = (() => {
     if (isFinished) {
       return `Completaste ${noteGoal} desafíos en ${formatElapsedTime(finalTimeMs ?? 0)}`;
@@ -164,7 +229,9 @@ export function NoteGame() {
     if (isSuccess) return '¡Correcto! Preparando el siguiente desafío…';
     if (!isActive) {
       if (gameMode === 'scale') {
-        return `Tocá el grado indicado en ${selectedKeyLabel}.`;
+        return scalePromptMode === 'note'
+          ? `Tocá la nota indicada en ${selectedKeyLabel}.`
+          : `Tocá el grado indicado en ${selectedKeyLabel}.`;
       }
       if (gameMode === 'general') {
         return 'Tocá la nota indicada en cualquier octava.';
@@ -177,7 +244,9 @@ export function NoteGame() {
 
   const headerDescription = (() => {
     if (gameMode === 'scale') {
-      return 'Te pedimos un grado del 1° al 7° de la escala elegida.';
+      return scalePromptMode === 'note'
+        ? 'Te pedimos una nota de la escala elegida.'
+        : 'Te pedimos un grado del 1° al 7° de la escala elegida.';
     }
     if (gameMode === 'general') {
       return 'Tocá la nota indicada; la octava no importa.';
@@ -192,15 +261,26 @@ export function NoteGame() {
           <span className="game__timer-label">Tiempo</span>
           <span className="game__timer-value">{displayedTime}</span>
         </div>
-        <button
-          type="button"
-          className={`game__mute ${speechMuted ? 'game__mute--active' : ''}`}
-          onClick={toggleSpeechMuted}
-          aria-pressed={speechMuted}
-          title={speechMuted ? 'Activar voz' : 'Silenciar voz'}
-        >
-          {speechMuted ? 'Voz off' : 'Voz on'}
-        </button>
+        <div className="game__audio-toggles">
+          <button
+            type="button"
+            className={`game__mute ${speechMuted ? 'game__mute--active' : ''}`}
+            onClick={toggleSpeechMuted}
+            aria-pressed={speechMuted}
+            title={speechMuted ? 'Activar voz' : 'Silenciar voz'}
+          >
+            {speechMuted ? 'Voz off' : 'Voz on'}
+          </button>
+          <button
+            type="button"
+            className={`game__mute ${!noteToneEnabled ? 'game__mute--active' : ''}`}
+            onClick={toggleNoteToneEnabled}
+            aria-pressed={noteToneEnabled}
+            title={noteToneEnabled ? 'Silenciar nota de referencia' : 'Reproducir la nota objetivo'}
+          >
+            {noteToneEnabled ? 'Note on' : 'Note off'}
+          </button>
+        </div>
       </div>
 
       <header className="game__header">
@@ -291,9 +371,7 @@ export function NoteGame() {
               Menor
             </button>
           </div>
-          <span className="game__settings-hint">
-            {selectedKeyLabel}
-          </span>
+          <span className="game__settings-hint">{selectedKeyLabel}</span>
         </div>
       )}
 
@@ -372,7 +450,21 @@ export function NoteGame() {
           </div>
         ) : gameMode === 'scale' ? (
           <>
-            <DegreeDisplay degree={targetDegree} keyLabel={selectedKeyLabel} />
+            {scalePromptMode === 'degree' ? (
+              <DegreeDisplay degree={targetDegree} scaleKeyRow={scaleKeyRow} />
+            ) : (
+              <NoteDisplay
+                note={
+                  expectedScaleNote
+                    ? { note: expectedScaleNote, octave: 0 }
+                    : null
+                }
+                label="Tocá esta nota"
+                variant="target"
+                hideOctave
+                scaleKeyRow={scaleKeyRow}
+              />
+            )}
 
             <p className="game__status">{statusMessage}</p>
 

@@ -31,7 +31,15 @@
   border: 1px solid var(--border);
 }
 
+.game__audio-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 4.75rem;
+}
+
 .game__mute {
+  flex: 1;
   min-width: 4.75rem;
   padding: 0.65rem 0.75rem;
   border: 1px solid var(--border);
@@ -280,11 +288,50 @@
   cursor: not-allowed;
 }
 
-.game__scale-key {
+.game__scale-key-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
   margin: 0 0 0.35rem;
+}
+
+.game__scale-key {
+  margin: 0;
   font-size: 1rem;
   font-weight: 600;
   color: var(--accent);
+}
+
+.game__prompt-toggle {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+}
+
+.game__prompt-toggle-btn {
+  min-width: 1.5rem;
+  padding: 0.15rem 0.35rem;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.game__prompt-toggle-btn:hover {
+  color: var(--text-primary);
+}
+
+.game__prompt-toggle-btn--active {
+  background: var(--accent);
+  color: #fff;
 }
 
 .game__degree-wrap {

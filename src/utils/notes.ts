@@ -89,6 +89,16 @@ export function pickRandomGameNote(
   return midiToNote(midi);
 }
 
+export function getReferenceFrequencyForNoteName(
+  note: NoteName,
+  instrument: Instrument,
+): number {
+  const gameNotes = getInstrumentGameNotes(instrument);
+  const matches = gameNotes.filter((midi) => midiToNote(midi).note === note);
+  const midi = matches[Math.floor(matches.length / 2)] ?? 69;
+  return midiToNote(midi).frequency;
+}
+
 export function frequencyToNote(frequency: number): NoteInfo {
   const midi = 12 * Math.log2(frequency / 440) + 69;
   const roundedMidi = Math.round(midi);

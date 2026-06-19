@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
+  getReferenceFrequencyForNoteName,
   notesMatch,
   pickRandomGameNote,
   type GameMode,
   type NoteInfo,
 } from '../utils/notes';
 import { resolveNoteGoal } from '../utils/gameTime';
+import { playCelebrationSound } from '../utils/celebrationSound';
+import { disposeReferenceTone, startReferenceTone, stopReferenceTone } from '../utils/noteTone';
 import type { Instrument } from '../utils/instruments';
 import {
   cancelSpeech,
@@ -18,6 +21,7 @@ import {
   pickRandomScaleDegree,
   type ScaleDegree,
   type ScaleKey,
+  type ScalePromptMode,
 } from '../utils/scales';
 import { usePitchDetector } from './usePitchDetector';
 
@@ -26,6 +30,25 @@ const SUCCESS_DELAY_MS = 700;
 const TIMER_INTERVAL_MS = 50;
 
 const DEFAULT_SCALE_KEY: ScaleKey = { root: 'A', quality: 'minor' };
+
+function resolveTargetReferenceFrequency(
+  gameMode: GameMode,
+  targetNote: NoteInfo,
+  instrument: Instrument,
+  scaleKey: ScaleKey,
+  targetDegree: ScaleDegree,
+): number {
+  if (gameMode === 'specific') {
+    return targetNote.frequency;
+  }
+
+  if (gameMode === 'general') {
+    return getReferenceFrequencyForNoteName(targetNote.note, instrument);
+  }
+
+  const scaleNote = getScaleDegreeNote(scaleKey, targetDegree);
+  return getReferenceFrequencyForNoteName(scaleNote, instrument);
+}
 
 export function useNoteGame() {
   const [instrument, setInstrument] = useState<Instrument>('guitar');
@@ -42,6 +65,7 @@ export function useNoteGame() {
   const [targetDegree, setTargetDegree] = useState<ScaleDegree>(() =>
     pickRandomScaleDegree(),
   );
+  const [scalePromptMode, setScalePromptMode] = useState<ScalePromptMode>('degree');
   const [score, setScore] = useState(0);
   const [noteGoal, setNoteGoal] = useState<number | null>(null);
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -49,6 +73,7 @@ export function useNoteGame() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
   const [speechMuted, setSpeechMuted] = useState(false);
+  const [noteToneEnabled, setNoteToneEnabled] = useState(false);
 
   const matchFramesRef = useRef(0);
   const successTimeoutRef = useRef<number | null>(null);
@@ -141,6 +166,9 @@ export function useNoteGame() {
 
   const finishGame = useCallback(() => {
     cancelSpeech();
+    if (noteGoalRef.current !== null) {
+      playCelebrationSound();
+    }
     stopTimer();
     setFinalTimeMs(accumulatedMsRef.current);
     setIsFinished(true);
@@ -188,10 +216,23 @@ export function useNoteGame() {
     setTargetDegree(pickRandomScaleDegree());
   }, []);
 
+  const changeScalePromptMode = useCallback((mode: ScalePromptMode) => {
+    setScalePromptMode(mode);
+  }, []);
+
   const toggleSpeechMuted = useCallback(() => {
     setSpeechMuted((prev) => {
       if (!prev) {
         cancelSpeech();
+      }
+      return !prev;
+    });
+  }, []);
+
+  const toggleNoteToneEnabled = useCallback(() => {
+    setNoteToneEnabled((prev) => {
+      if (prev) {
+        stopReferenceTone();
       }
       return !prev;
     });
@@ -289,7 +330,11 @@ export function useNoteGame() {
     if (!pitchState.isListening || isFinished || speechMuted) return;
 
     if (gameMode === 'scale') {
-      speakScaleDegree(targetDegree);
+      if (scalePromptMode === 'note' && expectedScaleNote) {
+        speakNote(expectedScaleNote);
+      } else {
+        speakScaleDegree(targetDegree);
+      }
       return;
     }
 
@@ -300,9 +345,11 @@ export function useNoteGame() {
 
     speakNote(targetNote.note);
   }, [
+    expectedScaleNote,
     gameMode,
     isFinished,
     pitchState.isListening,
+    scalePromptMode,
     speechMuted,
     targetDegree,
     targetNote.midi,
@@ -311,9 +358,47 @@ export function useNoteGame() {
   ]);
 
   useEffect(() => {
+    if (
+      !noteToneEnabled ||
+      !pitchState.isListening ||
+      isFinished ||
+      isSuccess
+    ) {
+      stopReferenceTone();
+      return;
+    }
+
+    const frequency = resolveTargetReferenceFrequency(
+      gameMode,
+      targetNote,
+      instrument,
+      selectedKey,
+      targetDegree,
+    );
+    startReferenceTone(frequency);
+
+    return () => {
+      stopReferenceTone();
+    };
+  }, [
+    gameMode,
+    instrument,
+    isFinished,
+    isSuccess,
+    noteToneEnabled,
+    pitchState.isListening,
+    selectedKey,
+    targetDegree,
+    targetNote.frequency,
+    targetNote.midi,
+    targetNote.note,
+  ]);
+
+  useEffect(() => {
     return () => {
       clearSuccessTimeout();
       cancelSpeech();
+      disposeReferenceTone();
       if (timerIntervalRef.current !== null) {
         window.clearInterval(timerIntervalRef.current);
       }
@@ -330,6 +415,7 @@ export function useNoteGame() {
     selectedKey,
     targetDegree,
     expectedScaleNote,
+    scalePromptMode,
     score,
     noteGoal,
     elapsedMs,
@@ -338,10 +424,13 @@ export function useNoteGame() {
     isFinished,
     hasStartedSession,
     speechMuted,
+    noteToneEnabled,
+    toggleNoteToneEnabled,
     changeInstrument,
     changeGameMode,
     changeScaleRoot,
     changeScaleQuality,
+    changeScalePromptMode,
     toggleSpeechMuted,
     startGame,
     resumeGame,

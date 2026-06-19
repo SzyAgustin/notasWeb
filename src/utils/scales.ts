@@ -9,6 +9,9 @@ export interface ScaleKey {
 
 export type ScaleDegree = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
+/** En modo Grados: mostrar/anunciar el número de grado o la nota resultante. */
+export type ScalePromptMode = 'degree' | 'note';
+
 const SCALE_ROOTS: NoteName[] = ['A', 'A#', 'B', 'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#'];
 
 export { SCALE_ROOTS };
