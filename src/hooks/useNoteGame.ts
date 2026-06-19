@@ -9,6 +9,11 @@ import {
 import { resolveNoteGoal } from '../utils/gameTime';
 import type { Instrument } from '../utils/instruments';
 import {
+  cancelSpeech,
+  speakNote,
+  speakScaleDegree,
+} from '../utils/speech';
+import {
   getScaleDegreeNote,
   pickRandomScaleDegree,
   type ScaleDegree,
@@ -43,6 +48,7 @@ export function useNoteGame() {
   const [finalTimeMs, setFinalTimeMs] = useState<number | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
+  const [speechMuted, setSpeechMuted] = useState(false);
 
   const matchFramesRef = useRef(0);
   const successTimeoutRef = useRef<number | null>(null);
@@ -134,6 +140,7 @@ export function useNoteGame() {
   );
 
   const finishGame = useCallback(() => {
+    cancelSpeech();
     stopTimer();
     setFinalTimeMs(accumulatedMsRef.current);
     setIsFinished(true);
@@ -181,6 +188,15 @@ export function useNoteGame() {
     setTargetDegree(pickRandomScaleDegree());
   }, []);
 
+  const toggleSpeechMuted = useCallback(() => {
+    setSpeechMuted((prev) => {
+      if (!prev) {
+        cancelSpeech();
+      }
+      return !prev;
+    });
+  }, []);
+
   const startGame = useCallback(
     async (deviceId?: string, noteCountInput = '') => {
       resetSessionState();
@@ -201,6 +217,7 @@ export function useNoteGame() {
 
   const pauseGame = useCallback(() => {
     clearSuccessTimeout();
+    cancelSpeech();
     stopTimer();
     setIsSuccess(false);
     matchFramesRef.current = 0;
@@ -269,8 +286,34 @@ export function useNoteGame() {
   ]);
 
   useEffect(() => {
+    if (!pitchState.isListening || isFinished || speechMuted) return;
+
+    if (gameMode === 'scale') {
+      speakScaleDegree(targetDegree);
+      return;
+    }
+
+    if (gameMode === 'specific') {
+      speakNote(targetNote.note, targetNote.octave);
+      return;
+    }
+
+    speakNote(targetNote.note);
+  }, [
+    gameMode,
+    isFinished,
+    pitchState.isListening,
+    speechMuted,
+    targetDegree,
+    targetNote.midi,
+    targetNote.note,
+    targetNote.octave,
+  ]);
+
+  useEffect(() => {
     return () => {
       clearSuccessTimeout();
+      cancelSpeech();
       if (timerIntervalRef.current !== null) {
         window.clearInterval(timerIntervalRef.current);
       }
@@ -294,10 +337,12 @@ export function useNoteGame() {
     isSuccess,
     isFinished,
     hasStartedSession,
+    speechMuted,
     changeInstrument,
     changeGameMode,
     changeScaleRoot,
     changeScaleQuality,
+    toggleSpeechMuted,
     startGame,
     resumeGame,
     pauseGame,

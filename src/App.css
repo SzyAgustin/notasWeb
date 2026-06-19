@@ -13,7 +13,14 @@
   gap: 1.25rem;
 }
 
+.game__timer-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.65rem;
+}
+
 .game__timer {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -22,6 +29,33 @@
   border-radius: 0.85rem;
   background: var(--surface);
   border: 1px solid var(--border);
+}
+
+.game__mute {
+  min-width: 4.75rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.85rem;
+  background: var(--surface);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.game__mute--active {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.45);
+  color: #f87171;
+}
+
+.game__mute:hover {
+  opacity: 0.9;
 }
 
 .game__timer--running {

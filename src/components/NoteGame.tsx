@@ -111,6 +111,8 @@ export function NoteGame() {
     pauseGame,
     resetGame,
     selectDevice,
+    speechMuted,
+    toggleSpeechMuted,
   } = useNoteGame();
 
   const isCorrect =
@@ -185,9 +187,20 @@ export function NoteGame() {
 
   return (
     <div className="game">
-      <div className={`game__timer ${isListening ? 'game__timer--running' : ''}`}>
-        <span className="game__timer-label">Tiempo</span>
-        <span className="game__timer-value">{displayedTime}</span>
+      <div className="game__timer-row">
+        <div className={`game__timer ${isListening ? 'game__timer--running' : ''}`}>
+          <span className="game__timer-label">Tiempo</span>
+          <span className="game__timer-value">{displayedTime}</span>
+        </div>
+        <button
+          type="button"
+          className={`game__mute ${speechMuted ? 'game__mute--active' : ''}`}
+          onClick={toggleSpeechMuted}
+          aria-pressed={speechMuted}
+          title={speechMuted ? 'Activar voz' : 'Silenciar voz'}
+        >
+          {speechMuted ? 'Voz off' : 'Voz on'}
+        </button>
       </div>
 
       <header className="game__header">
