@@ -155,6 +155,8 @@ export function NoteGame() {
     error,
     devices,
     selectedDeviceId,
+    gain,
+    setGain,
     changeInstrument,
     changeGameMode,
     changeScaleRoot,
@@ -409,6 +411,24 @@ export function NoteGame() {
             ))
           )}
         </select>
+      </div>
+
+      <div className="game__gain">
+        <label htmlFor="input-gain">
+          Ganancia de entrada <span className="game__gain-value">{gain.toFixed(1)}×</span>
+        </label>
+        <input
+          id="input-gain"
+          type="range"
+          min={1}
+          max={30}
+          step={0.5}
+          value={gain}
+          onChange={(event) => setGain(Number.parseFloat(event.target.value))}
+        />
+        <span className="game__settings-hint">
+          Subila si tenés que forzar el volumen de tu placa para que detecte la nota.
+        </span>
       </div>
 
       <div className="game__actions">

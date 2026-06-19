@@ -446,6 +446,32 @@
   opacity: 0.6;
 }
 
+.game__gain {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.game__gain label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.game__gain-value {
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.game__gain input[type='range'] {
+  width: 100%;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
 .game__actions {
   display: grid;
   grid-template-columns: 1fr auto;

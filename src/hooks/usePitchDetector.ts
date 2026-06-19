@@ -7,6 +7,23 @@ import { frequencyToNote, getRms, type NoteInfo } from '../utils/notes';
 
 const RMS_THRESHOLD = 0.008;
 
+export const MIN_GAIN = 1;
+export const MAX_GAIN = 30;
+const DEFAULT_GAIN = 1;
+const GAIN_STORAGE_KEY = 'notasweb:input-gain';
+
+function clampGain(value: number): number {
+  if (!Number.isFinite(value)) return DEFAULT_GAIN;
+  return Math.min(MAX_GAIN, Math.max(MIN_GAIN, value));
+}
+
+function readStoredGain(): number {
+  if (typeof window === 'undefined') return DEFAULT_GAIN;
+  const raw = window.localStorage.getItem(GAIN_STORAGE_KEY);
+  if (raw === null) return DEFAULT_GAIN;
+  return clampGain(Number.parseFloat(raw));
+}
+
 export interface PitchState {
   frequency: number | null;
   note: NoteInfo | null;
@@ -15,10 +32,11 @@ export interface PitchState {
   error: string | null;
   devices: MediaDeviceInfo[];
   selectedDeviceId: string;
+  gain: number;
 }
 
 export function usePitchDetector(instrument: Instrument) {
-  const [state, setState] = useState<PitchState>({
+  const [state, setState] = useState<PitchState>(() => ({
     frequency: null,
     note: null,
     isListening: false,
@@ -26,10 +44,13 @@ export function usePitchDetector(instrument: Instrument) {
     error: null,
     devices: [],
     selectedDeviceId: '',
-  });
+    gain: readStoredGain(),
+  }));
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
+  const gainValueRef = useRef<number>(state.gain);
   const streamRef = useRef<MediaStream | null>(null);
   const animationRef = useRef<number | null>(null);
   const detectPitchRef = useRef<ReturnType<typeof YIN> | null>(null);
@@ -52,6 +73,7 @@ export function usePitchDetector(instrument: Instrument) {
     void audioContextRef.current?.close();
     audioContextRef.current = null;
     analyserRef.current = null;
+    gainNodeRef.current = null;
     detectPitchRef.current = null;
     bufferRef.current = null;
 
@@ -126,7 +148,10 @@ export function usePitchDetector(instrument: Instrument) {
         analyser.smoothingTimeConstant = 0;
 
         const source = audioContext.createMediaStreamSource(stream);
-        source.connect(analyser);
+        const gainNode = audioContext.createGain();
+        gainNode.gain.value = gainValueRef.current;
+        source.connect(gainNode);
+        gainNode.connect(analyser);
 
         const arrayBuffer = new ArrayBuffer(analyser.fftSize * Float32Array.BYTES_PER_ELEMENT);
         const buffer = new Float32Array(arrayBuffer);
@@ -135,6 +160,7 @@ export function usePitchDetector(instrument: Instrument) {
         streamRef.current = stream;
         audioContextRef.current = audioContext;
         analyserRef.current = analyser;
+        gainNodeRef.current = gainNode;
         detectPitchRef.current = detectPitch;
         bufferRef.current = buffer;
 
@@ -185,6 +211,21 @@ export function usePitchDetector(instrument: Instrument) {
     setState((prev) => ({ ...prev, selectedDeviceId: deviceId }));
   }, []);
 
+  const setGain = useCallback((value: number) => {
+    const next = clampGain(value);
+    gainValueRef.current = next;
+
+    if (gainNodeRef.current) {
+      gainNodeRef.current.gain.value = next;
+    }
+
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(GAIN_STORAGE_KEY, String(next));
+    }
+
+    setState((prev) => ({ ...prev, gain: next }));
+  }, []);
+
   useEffect(() => {
     void refreshDevices();
     navigator.mediaDevices.addEventListener('devicechange', refreshDevices);
@@ -201,5 +242,6 @@ export function usePitchDetector(instrument: Instrument) {
     stopListening,
     refreshDevices,
     selectDevice,
+    setGain,
   };
 }
