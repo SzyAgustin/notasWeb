@@ -24,16 +24,6 @@ export { SCALE_ROOTS };
 const MAJOR_INTERVALS = [0, 2, 4, 5, 7, 9, 11];
 const MINOR_INTERVALS = [0, 2, 3, 5, 7, 8, 10];
 
-const DEGREE_ORDINALS: Record<ScaleDegree, string> = {
-  1: '1era',
-  2: '2da',
-  3: '3era',
-  4: '4ta',
-  5: '5ta',
-  6: '6ta',
-  7: '7ma',
-};
-
 export function getAllScaleKeys(): ScaleKey[] {
   const keys: ScaleKey[] = [];
 
@@ -51,10 +41,6 @@ export function scaleKeyId(key: ScaleKey): string {
 
 export function formatScaleKeyLabel(key: ScaleKey): string {
   return `${key.root} ${key.quality === 'major' ? 'mayor' : 'menor'}`;
-}
-
-export function formatScaleDegreeLabel(degree: ScaleDegree): string {
-  return `${degree}° (${DEGREE_ORDINALS[degree]})`;
 }
 
 function noteIndex(note: NoteName): number {

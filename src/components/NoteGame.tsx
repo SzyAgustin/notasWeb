@@ -5,7 +5,6 @@ import { formatElapsedTime } from '../utils/gameTime';
 import { INSTRUMENTS, getInstrumentRangeText, type Instrument } from '../utils/instruments';
 import { notesMatch, type GameMode } from '../utils/notes';
 import {
-  formatScaleDegreeLabel,
   formatScaleKeyLabel,
   SCALE_ROOTS,
   type ScalePromptMode,
@@ -24,8 +23,8 @@ const GAME_MODES: { id: GameMode; label: string; description: string }[] = [
   },
   {
     id: 'scale',
-    label: 'Grados',
-    description: 'Grados de una escala mayor o menor',
+    label: 'Escalas',
+    description: 'Notas o grados de una escala mayor o menor',
   },
 ];
 
@@ -37,16 +36,7 @@ function ScalePromptToggle({
   onChange: (mode: ScalePromptMode) => void;
 }) {
   return (
-    <div className="game__prompt-toggle" role="group" aria-label="Grado, nota o nota específica">
-      <button
-        type="button"
-        className={`game__prompt-toggle-btn ${mode === 'degree' ? 'game__prompt-toggle-btn--active' : ''}`}
-        onClick={() => onChange('degree')}
-        aria-pressed={mode === 'degree'}
-        title="Grado de la escala (1°–7°), cualquier octava"
-      >
-        °
-      </button>
+    <div className="game__prompt-toggle" role="group" aria-label="Nota, nota específica o grado">
       <button
         type="button"
         className={`game__prompt-toggle-btn ${mode === 'note' ? 'game__prompt-toggle-btn--active' : ''}`}
@@ -64,6 +54,15 @@ function ScalePromptToggle({
         title="Nota y octava exactas dentro de la escala"
       >
         8va
+      </button>
+      <button
+        type="button"
+        className={`game__prompt-toggle-btn ${mode === 'degree' ? 'game__prompt-toggle-btn--active' : ''}`}
+        onClick={() => onChange('degree')}
+        aria-pressed={mode === 'degree'}
+        title="Grado de la escala (1°–7°), cualquier octava"
+      >
+        °
       </button>
     </div>
   );
@@ -126,14 +125,13 @@ function DegreeDisplay({
         <span className="game__degree">{degree}</span>
         <span className="game__degree-symbol">°</span>
       </div>
-      <span className="game__note-hint">{formatScaleDegreeLabel(degree as 1 | 2 | 3 | 4 | 5 | 6 | 7)}</span>
     </div>
   );
 }
 
 function modeResultLabel(mode: GameMode): string {
   if (mode === 'general') return 'general';
-  if (mode === 'scale') return 'grados';
+  if (mode === 'scale') return 'escalas';
   return 'específico';
 }
 
@@ -278,26 +276,6 @@ export function NoteGame() {
       <header className="game__header">
         <div className="game__title-row">
           <h1>Desafío de Notas</h1>
-          <div className="game__audio-toggles">
-            <button
-              type="button"
-              className={`game__mute ${speechMuted ? 'game__mute--active' : ''}`}
-              onClick={toggleSpeechMuted}
-              aria-pressed={speechMuted}
-              title={speechMuted ? 'Activar voz' : 'Silenciar voz'}
-            >
-              {speechMuted ? 'Voz off' : 'Voz on'}
-            </button>
-            <button
-              type="button"
-              className={`game__mute ${!noteToneEnabled ? 'game__mute--active' : ''}`}
-              onClick={toggleNoteToneEnabled}
-              aria-pressed={noteToneEnabled}
-              title={noteToneEnabled ? 'Silenciar nota de referencia' : 'Reproducir la nota objetivo'}
-            >
-              {noteToneEnabled ? 'Note on' : 'Note off'}
-            </button>
-          </div>
         </div>
         <p>{headerDescription}</p>
       </header>
@@ -436,6 +414,27 @@ export function NoteGame() {
             value={gain}
             onChange={(event) => setGain(Number.parseFloat(event.target.value))}
           />
+        </div>
+
+        <div className="game__audio-toggles">
+          <button
+            type="button"
+            className={`game__mute ${speechMuted ? 'game__mute--active' : ''}`}
+            onClick={toggleSpeechMuted}
+            aria-pressed={speechMuted}
+            title={speechMuted ? 'Activar voz' : 'Silenciar voz'}
+          >
+            {speechMuted ? 'Voz off' : 'Voz on'}
+          </button>
+          <button
+            type="button"
+            className={`game__mute ${!noteToneEnabled ? 'game__mute--active' : ''}`}
+            onClick={toggleNoteToneEnabled}
+            aria-pressed={noteToneEnabled}
+            title={noteToneEnabled ? 'Silenciar nota de referencia' : 'Reproducir la nota objetivo'}
+          >
+            {noteToneEnabled ? 'Note on' : 'Note off'}
+          </button>
         </div>
       </aside>
 
