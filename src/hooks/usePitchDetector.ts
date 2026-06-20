@@ -9,7 +9,7 @@ const RMS_THRESHOLD = 0.008;
 
 export const MIN_GAIN = 1;
 export const MAX_GAIN = 30;
-const DEFAULT_GAIN = 1;
+const DEFAULT_GAIN = 15;
 const GAIN_STORAGE_KEY = 'notasweb:input-gain';
 
 function clampGain(value: number): number {
@@ -144,7 +144,10 @@ export function usePitchDetector(instrument: Instrument) {
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
         const audioContext = new AudioContext();
         const analyser = audioContext.createAnalyser();
-        analyser.fftSize = 4096;
+        // Buffer grande para que entren varios períodos de las notas graves
+        // (E1 del bajo ≈ 41 Hz necesita ~1165 muestras por período): con 4096
+        // YIN no lograba detectarla de forma estable.
+        analyser.fftSize = 8192;
         analyser.smoothingTimeConstant = 0;
 
         const source = audioContext.createMediaStreamSource(stream);

@@ -37,13 +37,13 @@ function ScalePromptToggle({
   onChange: (mode: ScalePromptMode) => void;
 }) {
   return (
-    <div className="game__prompt-toggle" role="group" aria-label="Grado o nota">
+    <div className="game__prompt-toggle" role="group" aria-label="Grado, nota o nota específica">
       <button
         type="button"
         className={`game__prompt-toggle-btn ${mode === 'degree' ? 'game__prompt-toggle-btn--active' : ''}`}
         onClick={() => onChange('degree')}
         aria-pressed={mode === 'degree'}
-        title="Muestra 1°–7° de la escala"
+        title="Grado de la escala (1°–7°), cualquier octava"
       >
         °
       </button>
@@ -52,9 +52,18 @@ function ScalePromptToggle({
         className={`game__prompt-toggle-btn ${mode === 'note' ? 'game__prompt-toggle-btn--active' : ''}`}
         onClick={() => onChange('note')}
         aria-pressed={mode === 'note'}
-        title="Muestra la nota a tocar"
+        title="Nota de la escala, cualquier octava"
       >
         ♪
+      </button>
+      <button
+        type="button"
+        className={`game__prompt-toggle-btn ${mode === 'specific' ? 'game__prompt-toggle-btn--active' : ''}`}
+        onClick={() => onChange('specific')}
+        aria-pressed={mode === 'specific'}
+        title="Nota y octava exactas dentro de la escala"
+      >
+        8va
       </button>
     </div>
   );
@@ -173,6 +182,7 @@ export function NoteGame() {
     toggleNoteToneEnabled,
   } = useNoteGame();
 
+  const scaleSpecific = gameMode === 'scale' && scalePromptMode === 'specific';
   const isCorrect =
     isActive &&
     detectedNote !== null &&
@@ -180,7 +190,8 @@ export function NoteGame() {
       detectedNote,
       targetNote,
       gameMode,
-      gameMode === 'scale' ? expectedScaleNote : undefined,
+      gameMode === 'scale' && !scaleSpecific ? expectedScaleNote : undefined,
+      scaleSpecific,
     );
 
   const canChangeSettings = !isListening && (!hasStartedSession || isFinished);
@@ -231,9 +242,13 @@ export function NoteGame() {
     if (isSuccess) return '¡Correcto! Preparando el siguiente desafío…';
     if (!isActive) {
       if (gameMode === 'scale') {
-        return scalePromptMode === 'note'
-          ? `Tocá la nota indicada en ${selectedKeyLabel}.`
-          : `Tocá el grado indicado en ${selectedKeyLabel}.`;
+        if (scalePromptMode === 'degree') {
+          return `Tocá el grado indicado en ${selectedKeyLabel}.`;
+        }
+        if (scalePromptMode === 'specific') {
+          return `Tocá la nota y octava indicadas en ${selectedKeyLabel}.`;
+        }
+        return `Tocá la nota indicada en ${selectedKeyLabel}.`;
       }
       if (gameMode === 'general') {
         return 'Tocá la nota indicada en cualquier octava.';
@@ -246,9 +261,13 @@ export function NoteGame() {
 
   const headerDescription = (() => {
     if (gameMode === 'scale') {
-      return scalePromptMode === 'note'
-        ? 'Te pedimos una nota de la escala elegida.'
-        : 'Te pedimos un grado del 1° al 7° de la escala elegida.';
+      if (scalePromptMode === 'degree') {
+        return 'Te pedimos un grado del 1° al 7° de la escala elegida.';
+      }
+      if (scalePromptMode === 'specific') {
+        return 'Te pedimos una nota y octava exactas dentro de la escala elegida.';
+      }
+      return 'Te pedimos una nota de la escala elegida.';
     }
     if (gameMode === 'general') {
       return 'Tocá la nota indicada; la octava no importa.';
@@ -472,6 +491,13 @@ export function NoteGame() {
           <>
             {scalePromptMode === 'degree' ? (
               <DegreeDisplay degree={targetDegree} scaleKeyRow={scaleKeyRow} />
+            ) : scalePromptMode === 'specific' ? (
+              <NoteDisplay
+                note={targetNote}
+                label="Tocá esta nota"
+                variant="target"
+                scaleKeyRow={scaleKeyRow}
+              />
             ) : (
               <NoteDisplay
                 note={

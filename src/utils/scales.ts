@@ -9,8 +9,13 @@ export interface ScaleKey {
 
 export type ScaleDegree = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
-/** En modo Grados: mostrar/anunciar el número de grado o la nota resultante. */
-export type ScalePromptMode = 'degree' | 'note';
+/**
+ * En modo Grados, qué se pide al jugador:
+ * - 'degree': el número de grado (1°–7°), cualquier octava.
+ * - 'note': la nota resultante del grado, cualquier octava.
+ * - 'specific': una nota y octava exactas dentro de la escala.
+ */
+export type ScalePromptMode = 'degree' | 'note' | 'specific';
 
 const SCALE_ROOTS: NoteName[] = ['A', 'A#', 'B', 'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#'];
 

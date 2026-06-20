@@ -49,8 +49,12 @@ export function notesMatch(
   target: NoteInfo,
   mode: GameMode,
   expectedNote?: NoteName,
+  scaleSpecific = false,
 ): boolean {
   if (mode === 'scale') {
+    if (scaleSpecific) {
+      return detected.midi === target.midi;
+    }
     return expectedNote !== undefined && detected.note === expectedNote;
   }
   if (mode === 'general') {
@@ -85,6 +89,22 @@ export function pickRandomGameNote(
   }
 
   const pool = gameNotes.filter((midi) => midi !== exclude?.midi);
+  const midi = pool[Math.floor(Math.random() * pool.length)] ?? minMidi;
+  return midiToNote(midi);
+}
+
+export function getScaleGameNotes(instrument: Instrument, scaleNotes: NoteName[]): number[] {
+  const inScale = new Set(scaleNotes);
+  return getInstrumentGameNotes(instrument).filter((midi) => inScale.has(midiToNote(midi).note));
+}
+
+export function pickRandomScaleGameNote(
+  instrument: Instrument,
+  scaleNotes: NoteName[],
+  excludeMidi?: number,
+): NoteInfo {
+  const { minMidi } = getInstrumentConfig(instrument);
+  const pool = getScaleGameNotes(instrument, scaleNotes).filter((midi) => midi !== excludeMidi);
   const midi = pool[Math.floor(Math.random() * pool.length)] ?? minMidi;
   return midiToNote(midi);
 }
