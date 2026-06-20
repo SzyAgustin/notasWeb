@@ -13,14 +13,7 @@
   gap: 1.25rem;
 }
 
-.game__timer-row {
-  display: flex;
-  align-items: stretch;
-  gap: 0.65rem;
-}
-
 .game__timer {
-  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -33,9 +26,8 @@
 
 .game__audio-toggles {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 0.45rem;
-  min-width: 4.75rem;
 }
 
 .game__mute {
@@ -394,45 +386,58 @@
   line-height: 1.5;
 }
 
-.game__device {
+.game__side {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 20;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.5rem;
+  width: min(13rem, 45vw);
 }
 
-.game__device label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.game__device select {
-  width: 100%;
-  padding: 0.65rem 0.75rem;
-  border-radius: 0.6rem;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-primary);
-  font: inherit;
-}
-
-.game__device select:disabled {
-  opacity: 0.6;
-}
-
+.game__device,
 .game__gain {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.25rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.6rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.game__device label,
+.game__gain label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
 }
 
 .game__gain label {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text-secondary);
+}
+
+.game__device select {
+  width: 100%;
+  padding: 0.35rem 1.6rem 0.35rem 0.45rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: var(--bg, var(--surface));
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+}
+
+.game__device select:disabled {
+  opacity: 0.6;
 }
 
 .game__gain-value {

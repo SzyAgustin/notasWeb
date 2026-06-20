@@ -13,14 +13,14 @@ import {
 
 const GAME_MODES: { id: GameMode; label: string; description: string }[] = [
   {
-    id: 'specific',
-    label: 'Específico',
-    description: 'Nota y octava exactas',
-  },
-  {
     id: 'general',
     label: 'General',
     description: 'Solo el nombre de la nota',
+  },
+  {
+    id: 'specific',
+    label: 'Específico',
+    description: 'Nota y octava exactas',
   },
   {
     id: 'scale',
@@ -107,9 +107,6 @@ function NoteDisplay({
         <span className="game__note">{note?.note ?? '—'}</span>
         {note && !hideOctave && <span className="game__octave">{note.octave}</span>}
       </div>
-      {hideOctave && note && (
-        <span className="game__note-hint">Cualquier octava</span>
-      )}
     </div>
   );
 }
@@ -278,36 +275,29 @@ export function NoteGame() {
 
   return (
     <div className="game">
-      <div className="game__timer-row">
-        <div className={`game__timer ${isListening ? 'game__timer--running' : ''}`}>
-          <span className="game__timer-label">Tiempo</span>
-          <span className="game__timer-value">{displayedTime}</span>
-        </div>
-        <div className="game__audio-toggles">
-          <button
-            type="button"
-            className={`game__mute ${speechMuted ? 'game__mute--active' : ''}`}
-            onClick={toggleSpeechMuted}
-            aria-pressed={speechMuted}
-            title={speechMuted ? 'Activar voz' : 'Silenciar voz'}
-          >
-            {speechMuted ? 'Voz off' : 'Voz on'}
-          </button>
-          <button
-            type="button"
-            className={`game__mute ${!noteToneEnabled ? 'game__mute--active' : ''}`}
-            onClick={toggleNoteToneEnabled}
-            aria-pressed={noteToneEnabled}
-            title={noteToneEnabled ? 'Silenciar nota de referencia' : 'Reproducir la nota objetivo'}
-          >
-            {noteToneEnabled ? 'Note on' : 'Note off'}
-          </button>
-        </div>
-      </div>
-
       <header className="game__header">
         <div className="game__title-row">
           <h1>Desafío de Notas</h1>
+          <div className="game__audio-toggles">
+            <button
+              type="button"
+              className={`game__mute ${speechMuted ? 'game__mute--active' : ''}`}
+              onClick={toggleSpeechMuted}
+              aria-pressed={speechMuted}
+              title={speechMuted ? 'Activar voz' : 'Silenciar voz'}
+            >
+              {speechMuted ? 'Voz off' : 'Voz on'}
+            </button>
+            <button
+              type="button"
+              className={`game__mute ${!noteToneEnabled ? 'game__mute--active' : ''}`}
+              onClick={toggleNoteToneEnabled}
+              aria-pressed={noteToneEnabled}
+              title={noteToneEnabled ? 'Silenciar nota de referencia' : 'Reproducir la nota objetivo'}
+            >
+              {noteToneEnabled ? 'Note on' : 'Note off'}
+            </button>
+          </div>
         </div>
         <p>{headerDescription}</p>
       </header>
@@ -407,43 +397,42 @@ export function NoteGame() {
         </span>
       </div>
 
-      <div className="game__device">
-        <label htmlFor="audio-input">Entrada de audio</label>
-        <select
-          id="audio-input"
-          value={selectedDeviceId}
-          onChange={(event) => selectDevice(event.target.value)}
-          disabled={isListening}
-        >
-          {devices.length === 0 ? (
-            <option value="">Sin dispositivos detectados</option>
-          ) : (
-            devices.map((device) => (
-              <option key={device.deviceId} value={device.deviceId}>
-                {device.label || `Entrada ${device.deviceId.slice(0, 8)}…`}
-              </option>
-            ))
-          )}
-        </select>
-      </div>
+      <aside className="game__side">
+        <div className="game__device">
+          <label htmlFor="audio-input">Entrada de audio</label>
+          <select
+            id="audio-input"
+            value={selectedDeviceId}
+            onChange={(event) => selectDevice(event.target.value)}
+            disabled={isListening}
+          >
+            {devices.length === 0 ? (
+              <option value="">Sin dispositivos detectados</option>
+            ) : (
+              devices.map((device) => (
+                <option key={device.deviceId} value={device.deviceId}>
+                  {device.label || `Entrada ${device.deviceId.slice(0, 8)}…`}
+                </option>
+              ))
+            )}
+          </select>
+        </div>
 
-      <div className="game__gain">
-        <label htmlFor="input-gain">
-          Ganancia de entrada <span className="game__gain-value">{gain.toFixed(1)}×</span>
-        </label>
-        <input
-          id="input-gain"
-          type="range"
-          min={1}
-          max={30}
-          step={0.5}
-          value={gain}
-          onChange={(event) => setGain(Number.parseFloat(event.target.value))}
-        />
-        <span className="game__settings-hint">
-          Subila si tenés que forzar el volumen de tu placa para que detecte la nota.
-        </span>
-      </div>
+        <div className="game__gain">
+          <label htmlFor="input-gain">
+            Ganancia <span className="game__gain-value">{gain.toFixed(1)}×</span>
+          </label>
+          <input
+            id="input-gain"
+            type="range"
+            min={1}
+            max={30}
+            step={0.5}
+            value={gain}
+            onChange={(event) => setGain(Number.parseFloat(event.target.value))}
+          />
+        </div>
+      </aside>
 
       <div className="game__actions">
         <button type="button" className="game__toggle" onClick={handleToggle}>
@@ -460,6 +449,11 @@ export function NoteGame() {
       </div>
 
       {error && <p className="game__error">{error}</p>}
+
+      <div className={`game__timer ${isListening ? 'game__timer--running' : ''}`}>
+        <span className="game__timer-label">Tiempo</span>
+        <span className="game__timer-value">{displayedTime}</span>
+      </div>
 
       <div
         className={[

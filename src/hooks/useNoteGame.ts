@@ -70,9 +70,9 @@ export function useNoteGame() {
     stopListening,
     ...pitchState
   } = usePitchDetector(instrument);
-  const [gameMode, setGameMode] = useState<GameMode>('specific');
+  const [gameMode, setGameMode] = useState<GameMode>('general');
   const [targetNote, setTargetNote] = useState<NoteInfo>(() =>
-    pickRandomGameNote('guitar', undefined, 'specific'),
+    pickRandomGameNote('guitar', undefined, 'general'),
   );
   const [selectedKey, setSelectedKey] = useState<ScaleKey>(DEFAULT_SCALE_KEY);
   const [targetDegree, setTargetDegree] = useState<ScaleDegree>(() =>
