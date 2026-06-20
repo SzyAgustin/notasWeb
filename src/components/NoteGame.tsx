@@ -308,18 +308,6 @@ export function NoteGame() {
       <header className="game__header">
         <div className="game__title-row">
           <h1>Desafío de Notas</h1>
-          <div className="game__stats">
-            <div className="game__score">
-              <span className="game__score-label">Progreso</span>
-              <span className="game__score-value">
-                {noteGoal === null ? score : `${Math.min(score, noteGoal)} / ${noteGoal}`}
-              </span>
-            </div>
-            <div className="game__score game__score--errors">
-              <span className="game__score-label">Errores</span>
-              <span className="game__score-value">{errors}</span>
-            </div>
-          </div>
         </div>
         <p>{headerDescription}</p>
       </header>
@@ -484,6 +472,21 @@ export function NoteGame() {
           .filter(Boolean)
           .join(' ')}
       >
+        {!isFinished && (
+          <>
+            <div className="game__board-stat game__board-stat--hits">
+              <span className="game__board-stat-label">Aciertos</span>
+              <span className="game__board-stat-value">
+                {noteGoal === null ? score : `${Math.min(score, noteGoal)} / ${noteGoal}`}
+              </span>
+            </div>
+            <div className="game__board-stat game__board-stat--errors">
+              <span className="game__board-stat-label">Errores</span>
+              <span className="game__board-stat-value">{errors}</span>
+            </div>
+          </>
+        )}
+
         {isFinished ? (
           <div className="game__result">
             <p className="game__result-title">¡Ronda completada!</p>
