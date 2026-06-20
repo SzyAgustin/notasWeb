@@ -28,6 +28,12 @@ import {
 import { usePitchDetector } from './usePitchDetector';
 
 const MATCH_FRAMES_REQUIRED = 14;
+// Cuántos frames seguidos debe sostenerse una nota equivocada para contarla
+// como error (evita contar parpadeos del detector al pasar de una nota a otra).
+const ERROR_FRAMES_REQUIRED = 8;
+// Frames de silencio que cierran un "intento": tras ellos, volver a tocar la
+// misma nota equivocada vuelve a contar como un error nuevo.
+const SILENCE_RESET_FRAMES = 10;
 const SUCCESS_DELAY_MS = 700;
 const TIMER_INTERVAL_MS = 50;
 
@@ -74,6 +80,7 @@ export function useNoteGame() {
   );
   const [scalePromptMode, setScalePromptMode] = useState<ScalePromptMode>('degree');
   const [score, setScore] = useState(0);
+  const [errors, setErrors] = useState(0);
   const [noteGoal, setNoteGoal] = useState<number | null>(null);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [finalTimeMs, setFinalTimeMs] = useState<number | null>(null);
@@ -83,6 +90,10 @@ export function useNoteGame() {
   const [noteToneEnabled, setNoteToneEnabled] = useState(false);
 
   const matchFramesRef = useRef(0);
+  const wrongFramesRef = useRef(0);
+  const wrongNoteMidiRef = useRef<number | null>(null);
+  const countedWrongMidiRef = useRef<number | null>(null);
+  const silenceFramesRef = useRef(0);
   const successTimeoutRef = useRef<number | null>(null);
   const timerIntervalRef = useRef<number | null>(null);
   const timerStartedAtRef = useRef<number | null>(null);
@@ -121,6 +132,13 @@ export function useNoteGame() {
       window.clearTimeout(successTimeoutRef.current);
       successTimeoutRef.current = null;
     }
+  }, []);
+
+  const resetErrorTracking = useCallback(() => {
+    wrongFramesRef.current = 0;
+    wrongNoteMidiRef.current = null;
+    countedWrongMidiRef.current = null;
+    silenceFramesRef.current = 0;
   }, []);
 
   const stopTimer = useCallback(() => {
@@ -184,8 +202,9 @@ export function useNoteGame() {
 
       setIsSuccess(false);
       matchFramesRef.current = 0;
+      resetErrorTracking();
     },
-    [],
+    [resetErrorTracking],
   );
 
   const finishGame = useCallback(() => {
@@ -206,13 +225,15 @@ export function useNoteGame() {
     stopTimer();
     accumulatedMsRef.current = 0;
     matchFramesRef.current = 0;
+    resetErrorTracking();
     setElapsedMs(0);
     setFinalTimeMs(null);
     setScore(0);
+    setErrors(0);
     setIsSuccess(false);
     setIsFinished(false);
     resetChallenge(gameModeRef.current);
-  }, [clearSuccessTimeout, resetChallenge, stopTimer]);
+  }, [clearSuccessTimeout, resetChallenge, resetErrorTracking, stopTimer]);
 
   const changeGameMode = useCallback(
     (mode: GameMode) => {
@@ -329,8 +350,21 @@ export function useNoteGame() {
       isFinished
     ) {
       matchFramesRef.current = 0;
+      wrongFramesRef.current = 0;
+      wrongNoteMidiRef.current = null;
+
+      // Tras un silencio sostenido cerramos el "intento": volver a tocar la
+      // misma nota equivocada contará como un error nuevo.
+      if (!pitchState.isActive || !pitchState.note) {
+        silenceFramesRef.current += 1;
+        if (silenceFramesRef.current >= SILENCE_RESET_FRAMES) {
+          countedWrongMidiRef.current = null;
+        }
+      }
       return;
     }
+
+    silenceFramesRef.current = 0;
 
     const scaleSpecific = gameMode === 'scale' && scalePromptMode === 'specific';
     const expectedNote =
@@ -339,6 +373,9 @@ export function useNoteGame() {
         : undefined;
 
     if (notesMatch(pitchState.note, targetNote, gameMode, expectedNote, scaleSpecific)) {
+      wrongFramesRef.current = 0;
+      wrongNoteMidiRef.current = null;
+      countedWrongMidiRef.current = null;
       matchFramesRef.current += 1;
 
       if (matchFramesRef.current >= MATCH_FRAMES_REQUIRED) {
@@ -362,6 +399,23 @@ export function useNoteGame() {
       }
     } else {
       matchFramesRef.current = 0;
+
+      const detectedMidi = pitchState.note.midi;
+
+      if (wrongNoteMidiRef.current !== detectedMidi) {
+        wrongNoteMidiRef.current = detectedMidi;
+        wrongFramesRef.current = 0;
+      }
+
+      wrongFramesRef.current += 1;
+
+      if (
+        wrongFramesRef.current >= ERROR_FRAMES_REQUIRED &&
+        countedWrongMidiRef.current !== detectedMidi
+      ) {
+        countedWrongMidiRef.current = detectedMidi;
+        setErrors((prev) => prev + 1);
+      }
     }
   }, [
     advanceChallenge,
@@ -473,6 +527,7 @@ export function useNoteGame() {
     expectedScaleNote,
     scalePromptMode,
     score,
+    errors,
     noteGoal,
     elapsedMs,
     finalTimeMs,

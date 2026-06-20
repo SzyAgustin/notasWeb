@@ -387,6 +387,11 @@
   margin-bottom: 0.35rem;
 }
 
+.game__stats {
+  display: flex;
+  gap: 0.5rem;
+}
+
 .game__score {
   display: flex;
   flex-direction: column;
@@ -411,6 +416,10 @@
   font-weight: 800;
   color: var(--accent);
   line-height: 1.1;
+}
+
+.game__score--errors .game__score-value {
+  color: #ef4444;
 }
 
 .game__header p {
@@ -570,6 +579,40 @@
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
   line-height: 1;
+}
+
+.game__result-stats {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin: 0 0 0.6rem;
+}
+
+.game__result-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.game__result-stat-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.game__result-stat-value {
+  font-size: 2.6rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.game__result-stat:last-child .game__result-stat-value {
+  color: #ef4444;
 }
 
 .game__result-detail {

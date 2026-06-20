@@ -153,6 +153,7 @@ export function NoteGame() {
     scalePromptMode,
     note: detectedNote,
     score,
+    errors,
     noteGoal,
     elapsedMs,
     finalTimeMs,
@@ -307,11 +308,17 @@ export function NoteGame() {
       <header className="game__header">
         <div className="game__title-row">
           <h1>Desafío de Notas</h1>
-          <div className="game__score">
-            <span className="game__score-label">Progreso</span>
-            <span className="game__score-value">
-              {noteGoal === null ? score : `${Math.min(score, noteGoal)} / ${noteGoal}`}
-            </span>
+          <div className="game__stats">
+            <div className="game__score">
+              <span className="game__score-label">Progreso</span>
+              <span className="game__score-value">
+                {noteGoal === null ? score : `${Math.min(score, noteGoal)} / ${noteGoal}`}
+              </span>
+            </div>
+            <div className="game__score game__score--errors">
+              <span className="game__score-label">Errores</span>
+              <span className="game__score-value">{errors}</span>
+            </div>
           </div>
         </div>
         <p>{headerDescription}</p>
@@ -480,11 +487,21 @@ export function NoteGame() {
         {isFinished ? (
           <div className="game__result">
             <p className="game__result-title">¡Ronda completada!</p>
-            <p className="game__result-time">{formatElapsedTime(finalTimeMs ?? 0)}</p>
+            <div className="game__result-stats">
+              <div className="game__result-stat">
+                <span className="game__result-stat-label">Tiempo</span>
+                <span className="game__result-stat-value">
+                  {formatElapsedTime(finalTimeMs ?? 0)}
+                </span>
+              </div>
+              <div className="game__result-stat">
+                <span className="game__result-stat-label">Errores</span>
+                <span className="game__result-stat-value">{errors}</span>
+              </div>
+            </div>
             <p className="game__result-detail">
               {noteGoal} desafíos · modo {modeResultLabel(gameMode)}
-              {gameMode === 'scale' ? ` · ${selectedKeyLabel}` : ''} ·{' '}
-              {formatElapsedTime(finalTimeMs ?? 0)}
+              {gameMode === 'scale' ? ` · ${selectedKeyLabel}` : ''}
             </p>
           </div>
         ) : gameMode === 'scale' ? (
