@@ -340,7 +340,11 @@ export function NoteGame() {
         </div>
       </div>
 
-      {gameMode === 'scale' && (
+      <div
+        className={`game__keys-wrap ${gameMode === 'scale' ? 'game__keys-wrap--open' : ''}`}
+        inert={gameMode !== 'scale'}
+      >
+        <div className="game__keys-inner">
         <div className="game__keys">
           <span className="game__keys-label">Escala</span>
           <div className="game__roots" role="group" aria-label="Tónica de la escala">
@@ -379,7 +383,8 @@ export function NoteGame() {
           </div>
           <span className="game__settings-hint">{selectedKeyLabel}</span>
         </div>
-      )}
+        </div>
+      </div>
 
       <div className="game__settings">
         <label htmlFor="note-count">Cantidad de notas</label>
