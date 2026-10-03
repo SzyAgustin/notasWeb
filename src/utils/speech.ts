@@ -1,20 +1,4 @@
-import type { NoteName } from './notes';
 import type { ScaleDegree } from './scales';
-
-const NOTE_SPEECH: Record<NoteName, string> = {
-  C: 'C',
-  'C#': 'C sharp',
-  D: 'D',
-  'D#': 'D sharp',
-  E: 'E',
-  F: 'F',
-  'F#': 'F sharp',
-  G: 'G',
-  'G#': 'G sharp',
-  A: 'A',
-  'A#': 'A sharp',
-  B: 'B',
-};
 
 const DEGREE_SPEECH: Record<ScaleDegree, string> = {
   1: 'first',
@@ -26,8 +10,13 @@ const DEGREE_SPEECH: Record<ScaleDegree, string> = {
   7: 'seventh',
 };
 
-export function noteToSpeech(note: NoteName, octave?: number): string {
-  const spoken = NOTE_SPEECH[note];
+/** "Eb" → "E flat", "F#" → "F sharp", "E#" → "E sharp". */
+export function spellingToSpeech(spelling: string, octave?: number): string {
+  const letter = spelling[0] ?? spelling;
+  const accidental = spelling.slice(1);
+  let spoken = letter;
+  if (accidental === '#') spoken = `${letter} sharp`;
+  else if (accidental === 'b') spoken = `${letter} flat`;
   return octave === undefined ? spoken : `${spoken}, ${octave}`;
 }
 
@@ -52,8 +41,8 @@ export function speakText(text: string): void {
   window.speechSynthesis.speak(utterance);
 }
 
-export function speakNote(note: NoteName, octave?: number): void {
-  speakText(noteToSpeech(note, octave));
+export function speakNote(spelling: string, octave?: number): void {
+  speakText(spellingToSpeech(spelling, octave));
 }
 
 export function speakScaleDegree(degree: ScaleDegree): void {

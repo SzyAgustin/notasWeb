@@ -5,6 +5,7 @@ import {
   notesMatch,
   pickRandomGameNote,
   pickRandomScaleGameNote,
+  pickRandomSpelling,
   type GameMode,
   type NoteInfo,
 } from '../utils/notes';
@@ -21,6 +22,7 @@ import {
   getScaleDegreeNote,
   getScaleNotes,
   pickRandomScaleDegree,
+  spellScaleNote,
   type ScaleDegree,
   type ScaleKey,
   type ScalePromptMode,
@@ -38,6 +40,11 @@ const SUCCESS_DELAY_MS = 700;
 const TIMER_INTERVAL_MS = 50;
 
 const DEFAULT_SCALE_KEY: ScaleKey = { root: 'A', quality: 'minor' };
+
+function spellingForTarget(note: NoteInfo, mode: GameMode, key: ScaleKey): string {
+  if (mode === 'scale') return spellScaleNote(key, note.note);
+  return pickRandomSpelling(note.note);
+}
 
 function resolveTargetReferenceFrequency(
   gameMode: GameMode,
@@ -73,6 +80,9 @@ export function useNoteGame() {
   const [gameMode, setGameMode] = useState<GameMode>('general');
   const [targetNote, setTargetNote] = useState<NoteInfo>(() =>
     pickRandomGameNote('guitar', undefined, 'general'),
+  );
+  const [targetSpelling, setTargetSpelling] = useState(() =>
+    pickRandomSpelling(targetNote.note),
   );
   const [selectedKey, setSelectedKey] = useState<ScaleKey>(DEFAULT_SCALE_KEY);
   const [targetDegree, setTargetDegree] = useState<ScaleDegree>(() =>
@@ -166,15 +176,19 @@ export function useNoteGame() {
   }, [stopTimer]);
 
   const resetChallenge = useCallback((mode: GameMode) => {
+    const key = selectedKeyRef.current;
     if (mode === 'scale') {
       if (scalePromptModeRef.current === 'specific') {
-        const scaleNotes = getScaleNotes(selectedKeyRef.current);
-        setTargetNote(pickRandomScaleGameNote(instrumentRef.current, scaleNotes));
+        const note = pickRandomScaleGameNote(instrumentRef.current, getScaleNotes(key));
+        setTargetNote(note);
+        setTargetSpelling(spellingForTarget(note, mode, key));
       } else {
         setTargetDegree(pickRandomScaleDegree());
       }
     } else {
-      setTargetNote(pickRandomGameNote(instrumentRef.current, undefined, mode));
+      const note = pickRandomGameNote(instrumentRef.current, undefined, mode);
+      setTargetNote(note);
+      setTargetSpelling(spellingForTarget(note, mode, key));
     }
   }, []);
 
@@ -183,12 +197,16 @@ export function useNoteGame() {
       const mode = gameModeRef.current;
       const currentInstrument = instrumentRef.current;
 
+      const key = selectedKeyRef.current;
       if (mode === 'scale') {
         if (scalePromptModeRef.current === 'specific') {
-          const scaleNotes = getScaleNotes(selectedKeyRef.current);
-          setTargetNote(
-            pickRandomScaleGameNote(currentInstrument, scaleNotes, currentTarget.midi),
+          const note = pickRandomScaleGameNote(
+            currentInstrument,
+            getScaleNotes(key),
+            currentTarget.midi,
           );
+          setTargetNote(note);
+          setTargetSpelling(spellingForTarget(note, mode, key));
         } else {
           setTargetDegree(pickRandomScaleDegree(currentDegree));
         }
@@ -197,7 +215,9 @@ export function useNoteGame() {
           mode === 'general'
             ? { note: currentTarget.note }
             : { midi: currentTarget.midi };
-        setTargetNote(pickRandomGameNote(currentInstrument, exclude, mode));
+        const note = pickRandomGameNote(currentInstrument, exclude, mode);
+        setTargetNote(note);
+        setTargetSpelling(spellingForTarget(note, mode, key));
       }
 
       setIsSuccess(false);
@@ -254,7 +274,9 @@ export function useNoteGame() {
 
   const repickScaleChallenge = useCallback((key: ScaleKey) => {
     if (scalePromptModeRef.current === 'specific') {
-      setTargetNote(pickRandomScaleGameNote(instrumentRef.current, getScaleNotes(key)));
+      const note = pickRandomScaleGameNote(instrumentRef.current, getScaleNotes(key));
+      setTargetNote(note);
+      setTargetSpelling(spellingForTarget(note, 'scale', key));
     } else {
       setTargetDegree(pickRandomScaleDegree());
     }
@@ -437,9 +459,9 @@ export function useNoteGame() {
 
     if (gameMode === 'scale') {
       if (scalePromptMode === 'specific') {
-        speakNote(targetNote.note, targetNote.octave);
+        speakNote(spellScaleNote(selectedKey, targetNote.note), targetNote.octave);
       } else if (scalePromptMode === 'note' && expectedScaleNote) {
-        speakNote(expectedScaleNote);
+        speakNote(spellScaleNote(selectedKey, expectedScaleNote));
       } else {
         speakScaleDegree(targetDegree);
       }
@@ -447,22 +469,24 @@ export function useNoteGame() {
     }
 
     if (gameMode === 'specific') {
-      speakNote(targetNote.note, targetNote.octave);
+      speakNote(targetSpelling, targetNote.octave);
       return;
     }
 
-    speakNote(targetNote.note);
+    speakNote(targetSpelling);
   }, [
     expectedScaleNote,
     gameMode,
     isFinished,
     pitchState.isListening,
     scalePromptMode,
+    selectedKey,
     speechMuted,
     targetDegree,
     targetNote.midi,
     targetNote.note,
     targetNote.octave,
+    targetSpelling,
   ]);
 
   useEffect(() => {
@@ -522,6 +546,7 @@ export function useNoteGame() {
     instrument,
     gameMode,
     targetNote,
+    targetSpelling,
     selectedKey,
     targetDegree,
     expectedScaleNote,

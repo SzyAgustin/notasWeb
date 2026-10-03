@@ -6,7 +6,8 @@ import { INSTRUMENTS, getInstrumentRangeText, type Instrument } from '../utils/i
 import { notesMatch, type GameMode } from '../utils/notes';
 import {
   formatScaleKeyLabel,
-  SCALE_ROOTS,
+  getScaleRoots,
+  spellScaleNote,
   type ScalePromptMode,
 } from '../utils/scales';
 
@@ -142,6 +143,7 @@ export function NoteGame() {
     instrument,
     gameMode,
     targetNote,
+    targetSpelling,
     selectedKey,
     targetDegree,
     expectedScaleNote,
@@ -325,20 +327,6 @@ export function NoteGame() {
         <div className="game__keys-inner">
         <div className="game__keys">
           <span className="game__keys-label">Escala</span>
-          <div className="game__roots" role="group" aria-label="Tónica de la escala">
-            {SCALE_ROOTS.map((root) => (
-              <button
-                key={root}
-                type="button"
-                className={`game__root-option ${selectedKey.root === root ? 'game__root-option--active' : ''}`}
-                onClick={() => changeScaleRoot(root)}
-                disabled={!canChangeSettings}
-                aria-pressed={selectedKey.root === root}
-              >
-                {root}
-              </button>
-            ))}
-          </div>
           <div className="game__quality-toggle" role="group" aria-label="Tipo de escala">
             <button
               type="button"
@@ -358,6 +346,20 @@ export function NoteGame() {
             >
               Menor
             </button>
+          </div>
+          <div className="game__roots" role="group" aria-label="Tónica de la escala">
+            {getScaleRoots(selectedKey.quality).map((root) => (
+              <button
+                key={root.note}
+                type="button"
+                className={`game__root-option ${selectedKey.root === root.note ? 'game__root-option--active' : ''}`}
+                onClick={() => changeScaleRoot(root.note)}
+                disabled={!canChangeSettings}
+                aria-pressed={selectedKey.root === root.note}
+              >
+                {root.label}
+              </button>
+            ))}
           </div>
           <span className="game__settings-hint">{selectedKeyLabel}</span>
         </div>
@@ -511,7 +513,10 @@ export function NoteGame() {
               <DegreeDisplay degree={targetDegree} scaleKeyRow={scaleKeyRow} />
             ) : scalePromptMode === 'specific' ? (
               <NoteDisplay
-                note={targetNote}
+                note={{
+                  note: spellScaleNote(selectedKey, targetNote.note),
+                  octave: targetNote.octave,
+                }}
                 label="Tocá esta nota"
                 variant="target"
                 scaleKeyRow={scaleKeyRow}
@@ -520,7 +525,7 @@ export function NoteGame() {
               <NoteDisplay
                 note={
                   expectedScaleNote
-                    ? { note: expectedScaleNote, octave: 0 }
+                    ? { note: spellScaleNote(selectedKey, expectedScaleNote), octave: 0 }
                     : null
                 }
                 label="Tocá esta nota"
@@ -541,7 +546,7 @@ export function NoteGame() {
         ) : (
           <>
             <NoteDisplay
-              note={targetNote}
+              note={{ note: targetSpelling, octave: targetNote.octave }}
               label="Tocá esta nota"
               variant="target"
               hideOctave={gameMode === 'general'}

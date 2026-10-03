@@ -7,6 +7,25 @@ export { NOTE_NAMES };
 
 export type NoteName = (typeof NOTE_NAMES)[number];
 
+/** Bemol habitual de cada tecla negra. El afinador sigue identificando la nota con #. */
+const ENHARMONIC_FLAT: Partial<Record<NoteName, string>> = {
+  'C#': 'Db',
+  'D#': 'Eb',
+  'F#': 'Gb',
+  'G#': 'Ab',
+  'A#': 'Bb',
+};
+
+/**
+ * Nombre que se muestra y se dice. En las teclas negras, la mitad de las veces
+ * es el bemol (Eb) y la otra mitad el sostenido (D#).
+ */
+export function pickRandomSpelling(note: NoteName): string {
+  const flat = ENHARMONIC_FLAT[note];
+  if (!flat || Math.random() < 0.5) return note;
+  return flat;
+}
+
 export interface NoteInfo {
   note: NoteName;
   octave: number;
