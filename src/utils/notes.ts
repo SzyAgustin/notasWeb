@@ -128,14 +128,34 @@ export function pickRandomScaleGameNote(
   return midiToNote(midi);
 }
 
-export function getReferenceFrequencyForNoteName(
+/** Octavas que existen en el mástil (en guitarra, 2–6; el E1 queda en el bajo). */
+export function getInstrumentOctaves(instrument: Instrument): number[] {
+  const octaves = new Set<number>();
+
+  for (const midi of getInstrumentGameNotes(instrument)) {
+    octaves.add(midiToNote(midi).octave);
+  }
+
+  return [...octaves].sort((left, right) => left - right);
+}
+
+/**
+ * Todas las veces que esa nota está en las octavas elegidas y en el mástil.
+ * En 3, 4 y 5 es la octava completa; el corte es solo el E grave y el D agudo.
+ */
+export function getReferenceFrequenciesForNoteName(
   note: NoteName,
   instrument: Instrument,
-): number {
-  const gameNotes = getInstrumentGameNotes(instrument);
-  const matches = gameNotes.filter((midi) => midiToNote(midi).note === note);
-  const midi = matches[Math.floor(matches.length / 2)] ?? 69;
-  return midiToNote(midi).frequency;
+  octaves: number[],
+): number[] {
+  const allowed = new Set(octaves);
+
+  return getInstrumentGameNotes(instrument)
+    .filter((midi) => {
+      const info = midiToNote(midi);
+      return info.note === note && allowed.has(info.octave);
+    })
+    .map((midi) => midiToNote(midi).frequency);
 }
 
 export function frequencyToNote(frequency: number): NoteInfo {

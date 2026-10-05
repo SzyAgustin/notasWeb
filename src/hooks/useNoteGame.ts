@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
-  getReferenceFrequencyForNoteName,
+  getInstrumentOctaves,
+  getReferenceFrequenciesForNoteName,
   notesMatch,
   pickRandomGameNote,
   pickRandomScaleGameNote,
@@ -46,28 +47,26 @@ function spellingForTarget(note: NoteInfo, mode: GameMode, key: ScaleKey): strin
   return pickRandomSpelling(note.note);
 }
 
-function resolveTargetReferenceFrequency(
+function octaveIsFixed(gameMode: GameMode, scalePromptMode: ScalePromptMode): boolean {
+  return gameMode === 'specific' || (gameMode === 'scale' && scalePromptMode === 'specific');
+}
+
+function resolveTargetReferenceFrequencies(
   gameMode: GameMode,
   targetNote: NoteInfo,
   instrument: Instrument,
   scaleKey: ScaleKey,
   targetDegree: ScaleDegree,
   scalePromptMode: ScalePromptMode,
-): number {
-  if (gameMode === 'specific') {
-    return targetNote.frequency;
+  referenceOctaves: number[],
+): number[] {
+  if (octaveIsFixed(gameMode, scalePromptMode)) {
+    return [targetNote.frequency];
   }
 
-  if (gameMode === 'general') {
-    return getReferenceFrequencyForNoteName(targetNote.note, instrument);
-  }
-
-  if (scalePromptMode === 'specific') {
-    return targetNote.frequency;
-  }
-
-  const scaleNote = getScaleDegreeNote(scaleKey, targetDegree);
-  return getReferenceFrequencyForNoteName(scaleNote, instrument);
+  const note =
+    gameMode === 'scale' ? getScaleDegreeNote(scaleKey, targetDegree) : targetNote.note;
+  return getReferenceFrequenciesForNoteName(note, instrument, referenceOctaves);
 }
 
 export function useNoteGame() {
@@ -98,6 +97,9 @@ export function useNoteGame() {
   const [isFinished, setIsFinished] = useState(false);
   const [speechMuted, setSpeechMuted] = useState(false);
   const [noteToneEnabled, setNoteToneEnabled] = useState(false);
+  const [referenceOctaves, setReferenceOctaves] = useState<number[]>(() =>
+    getInstrumentOctaves('guitar'),
+  );
 
   const matchFramesRef = useRef(0);
   const wrongFramesRef = useRef(0);
@@ -265,12 +267,32 @@ export function useNoteGame() {
 
   const changeInstrument = useCallback(
     (nextInstrument: Instrument) => {
+      const previousOctaves = getInstrumentOctaves(instrumentRef.current);
       setInstrument(nextInstrument);
       instrumentRef.current = nextInstrument;
+      setReferenceOctaves((current) => {
+        const available = getInstrumentOctaves(nextInstrument);
+        const wasAll =
+          current.length === previousOctaves.length &&
+          previousOctaves.every((octave) => current.includes(octave));
+        if (wasAll) return available;
+        const kept = current.filter((octave) => available.includes(octave));
+        return kept.length > 0 ? kept : available;
+      });
       resetChallenge(gameModeRef.current);
     },
     [resetChallenge],
   );
+
+  const toggleReferenceOctave = useCallback((octave: number) => {
+    setReferenceOctaves((current) => {
+      if (current.includes(octave)) {
+        if (current.length === 1) return current;
+        return current.filter((value) => value !== octave);
+      }
+      return [...current, octave].sort((left, right) => left - right);
+    });
+  }, []);
 
   const repickScaleChallenge = useCallback((key: ScaleKey) => {
     if (scalePromptModeRef.current === 'specific') {
@@ -500,15 +522,16 @@ export function useNoteGame() {
       return;
     }
 
-    const frequency = resolveTargetReferenceFrequency(
+    const frequencies = resolveTargetReferenceFrequencies(
       gameMode,
       targetNote,
       instrument,
       selectedKey,
       targetDegree,
       scalePromptMode,
+      referenceOctaves,
     );
-    startReferenceTone(frequency);
+    startReferenceTone(frequencies);
 
     return () => {
       stopReferenceTone();
@@ -520,6 +543,7 @@ export function useNoteGame() {
     isSuccess,
     noteToneEnabled,
     pitchState.isListening,
+    referenceOctaves,
     scalePromptMode,
     selectedKey,
     targetDegree,
@@ -562,6 +586,9 @@ export function useNoteGame() {
     speechMuted,
     noteToneEnabled,
     toggleNoteToneEnabled,
+    instrumentOctaves: getInstrumentOctaves(instrument),
+    referenceOctaves,
+    toggleReferenceOctave,
     changeInstrument,
     changeGameMode,
     changeScaleRoot,

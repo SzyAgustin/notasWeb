@@ -178,6 +178,9 @@ export function NoteGame() {
     toggleSpeechMuted,
     noteToneEnabled,
     toggleNoteToneEnabled,
+    instrumentOctaves,
+    referenceOctaves,
+    toggleReferenceOctave,
   } = useNoteGame();
 
   const scaleSpecific = gameMode === 'scale' && scalePromptMode === 'specific';
@@ -438,6 +441,30 @@ export function NoteGame() {
             {noteToneEnabled ? 'Note on' : 'Note off'}
           </button>
         </div>
+
+        {noteToneEnabled &&
+          !(gameMode === 'specific' || (gameMode === 'scale' && scalePromptMode === 'specific')) && (
+          <div className="game__octave-picker" role="group" aria-label="Octavas de la nota de referencia">
+            <span className="game__octave-picker-label">Octavas</span>
+            <div className="game__octave-picker-options">
+              {instrumentOctaves.map((octave) => {
+                const selected = referenceOctaves.includes(octave);
+                return (
+                  <button
+                    key={octave}
+                    type="button"
+                    className={`game__octave-picker-btn ${selected ? 'game__octave-picker-btn--active' : ''}`}
+                    onClick={() => toggleReferenceOctave(octave)}
+                    aria-pressed={selected}
+                    title={`La referencia suena en la octava ${octave}`}
+                  >
+                    {octave}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </aside>
 
       <div className="game__actions">

@@ -58,6 +58,50 @@
   opacity: 0.9;
 }
 
+.game__octave-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 0.6rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.game__octave-picker-label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.game__octave-picker-options {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.game__octave-picker-btn {
+  flex: 1;
+  min-width: 0;
+  padding: 0.28rem 0;
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.game__octave-picker-btn--active {
+  background: rgba(99, 102, 241, 0.18);
+  border-color: var(--accent-border);
+  color: var(--text-primary);
+}
+
 .game__timer--running {
   border-color: var(--accent-border);
 }

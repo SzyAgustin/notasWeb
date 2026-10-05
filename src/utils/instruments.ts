@@ -14,8 +14,8 @@ const GUITAR: InstrumentConfig = {
   id: 'guitar',
   label: 'Guitarra',
   minMidi: 40,
-  maxMidi: 85,
-  rangeLabel: 'E2 — C#6',
+  maxMidi: 86,
+  rangeLabel: 'E2 — D6',
   description: '6 cuerdas · 22 trastes',
 };
 
